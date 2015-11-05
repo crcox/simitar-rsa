@@ -1,42 +1,49 @@
-Notes on preparing datasets for use with the toolboxes (mostly about "meta" structure creation)
-(francisco.pereira@gmail.com)
------------------------------------------------------------------------------------------
+# Notes on preparing datasets for use with the toolboxes
+- This is mostly about "meta" structure creation.
+- Authored by: francisco.pereira@gmail.com
+- Markdown by: crcox@wisc.edu
 
+## CMU IDM Format
 The CMU IDM format contains a structure named "meta" which keeps the information
 about a dataset that is not directly related to the experimental design. The format
-assumes the data is a matrix with <n> examples (or time points) by <m> voxels.
+assumes the data is a matrix with `<n>` examples (or time points) by `<m>` voxels.
 and generally only a subset of the voxels in 3D the volume is present. Hence, it's
 necessary to keep a mapping between columns of the data matrix and position in 3D.
 All the code in the toolbox assumes you are are working with data in this format.
 
+## Convert to CMU IDM
 In order to describe how to convert to this format, I'll assume you have
 the following two MATLAB matrices
 
-a) mask3D - a 3D (dimx x dimy x dimz) binary mask with 1 where brain voxels are and 0 everywhere else
-b) data4D - a 4D (dimx x dimy x dimz x dimt) dataset matrix, with <dimt> 3D volumes
+1. mask3D - a 3D `(dimx x dimy x dimz)` binary mask with `1` where brain voxels are and `0` everywhere else
+2. data4D - a 4D `(dimx x dimy x dimz x dimt)` dataset matrix, with `<dimt>` 3D volumes
 
 The steps are:
 
 
-1) create a "meta" structure from the mask
+### 1. Create a "meta" structure from the mask
 
+```{matlab}
 meta = createMetaFromMask(mask3D,'radius',1);
+```
 
 which will be described in more detail below. For now, we'll say it's the main ingredient
 in the magic sauce that allows the code to run fast.
 
 The part that will be used in the conversion is the field
 
+```{matlab}
 meta.indicesIn3D
+```
 
 which contains the indices of the 1 voxels in the mask when the 3D volume is vectorized.
 
 
-2) turn each volume in data into one example
+### 2. Turn each volume in data into one example
 
-You can use 
+You can use:
 
-
+```{matlab}
 [dimx,dimy,dimz,dimt] = size(data);
 nvoxels = length(meta.indicesIn3D);
 
@@ -47,12 +54,15 @@ for t = 1:dimt
     volume = data(:,:,:,t);
     examples(t,:) = volume(meta.indicesIn3D);
 
-end 
+end
+```
 
-sometimes I have to transform several volumes into a single example (e.g. all the images in a block).
+Sometimes I have to transform several volumes into a single example (e.g. all the images in a block).
 
 
-3) create "labels" and "labelsGroup" (the latter is more relevant for Searchmight than for Simitar)
+### 3. Create "labels" and "labelsGroup"
+
+> N.B. `labelsGroup` is more relevant for Searchmight than for Simitar.
 
 This depends entirely on how you want to label examples relative to TRs, the main thing
 is that it has to have as many entries as there are examples.
@@ -67,16 +77,17 @@ examples.
 The functions that use this will likely perform some sort of cross-validation inside, e.g.
 when creating a searchlight accuracy map.
 
-and you are all set!
+And you are all set!
 
 You should probably save these rather than recompute them on the fly, as building meta
 takes a little while...
 
 
-----------------------------------------------------------------------------------------------
+## About the `meta` structure
 
 If you are more curious about "meta", it is a structure with the following fields:
 
+```
 dimx,dimy,dimz - the dimensions of the imaging volume
 
 colToCoord - m x 3 matrix 
@@ -102,13 +113,13 @@ indicesIn3D - m element vector
 
 	   volume = repmat(NaN,[dimx,dimy,dimz]); % creates a 3D volume with NaN values
 	   volume(meta.indicesIn3D) = vector;     % places vector in that 3D volume
+```
 
-
-The way createMetaFromMask works, assuming you have a 3D matrix with a binary mask
+The way `createMetaFromMask` works, assuming you have a 3D matrix with a binary mask
 of the voxels you are interested in, "mask" (can be created easily by reading in
-an AFNI mask with afni_matlab, say):
+an AFNI mask with `afni_matlab`, say):
 
-
+```{matlab}
 meta.dimx = dimx; meta.dimy = dimy; meta.dimz = dimz;
 meta.dimensions = [dimx dimy dimz];
 
@@ -118,10 +129,11 @@ m = length(meta.indiceIn3D);
 meta.colToCoord = [cx,cy,cz];
 meta.coordToCol = zeros(meta.dimensions);
 meta.coordToCol(meta.indicesIn3D) = 1:m;
-
+```
 
 This can then be used to produce the two remaining fields
 
+```
 numberOfNeighbours - m x 1
 
 	numberOfNeighbours(i) is the number of neighbours a voxel has
@@ -134,17 +146,22 @@ voxelsToNeighbours - m x (2*radius+1)^3
 	Note that the row <i> in voxelsToNeighbours will be filled with numbers only
 	if voxel <i> has neighbours in every possible direction. If not, the entries
 	above numberOfNeighbours(i) are just NaN.
+```
 
 These two fields are produced using a function that takes the coordinate information
 and a specific radius to consider (e.g. radius 1 means a voxel and its immediately
 adjacent neighbours).
 
+```{matlab}
 [meta.voxelsToNeighbours,meta.numberOfNeighbours] = neighboursWithinRadius(meta.colToCoord,1);
+```
 
 Note that there are various kinds of neighbourhood definitions. The code defaults to 'cubic',
 where radius 1 includes all 26 voxels adjacent, but one could also specify 'spheric' to
 get the definition in [Kriegeskorte et al 2006], e.g.
 
+```{matlab}
 [meta.voxelsToNeighbours,meta.numberOfNeighbours] = neighboursWithinRadius(meta.colToCoord,1,'neighbourhoodType','spheric');
+```
 
-(WARNING: 'spheric' not implemented yet)
+> **(WARNING: 'spheric' not implemented yet)**
