@@ -36,32 +36,41 @@
 %     A: This allows you to quickly get the (dis)similarity matrices
 %     between conditions in each searchlight, whereas Searchmight allows
 %     you to quickly train/test classifiers in each searchlight.
-%     A: It's also a slightly less bad pun, we think. 
+%     A: It's also a slightly less bad pun, we think.
 
 % Demonstration on a mock dataset
-% We have a mock dataset that simulates the results of an experiment in phonetic perception, using as stimuli video recordings of someone saying a particular phoneme. The experiment aims to study the McGurk Effect, a phenomenon whereby a subject hearing audio of someone saying a phoneme (BA) and video of them articulating a different phoneme (GA) perceives a third phoneme (DA). Experiment trials belong to one of these four conditions
-% 
-%     Three where they see audio and video of someone saying BA, GA or DA, labelled in the same way
-%     One where they see mismatched audio (BA) and video (GA), which we will label MC (for McGurk)
-% 
+% We have a mock dataset that simulates the results of an experiment in
+% phonetic perception, using as stimuli video recordings of someone saying a
+% particular phoneme. The experiment aims to study the McGurk Effect, a
+% phenomenon whereby a subject hearing audio of someone saying a phoneme (BA)
+% and video of them articulating a different phoneme (GA) perceives a third
+% phoneme (DA). Experiment trials belong to one of these four conditions
+%
+%     Three where they see audio and video of someone saying BA, GA or DA,
+%     labelled in the same way
+%     One where they see mismatched audio (BA) and video (GA), which we will
+%     label MC (for McGurk)
+%
 % Mock dataset
 % Mock brain
-% 
-% The mock brain has a single slice, divided into 4 regions-of-interest (ROIs), associated with auditory, visual and perceptual representations, as well as "other things" that are common to all conditions.
-% Activation per condition
+%
+% The mock brain has a single slice, divided into 4 regions-of-interest (ROIs),
+% associated with auditory, visual and perceptual representations, as well as
+% "other things" that are common to all conditions.
 
+% Activation per condition
 % In each condition a subject will hear, see and perceive something, so
 % each condition gives rise to a pattern of activation in each of the four
 % ROIs.
 
 % We designed the dataset so that our experimental hypothesis was true (if
 % only life were that easy):
-% 
+%
 %     BA and MC share a pattern in the auditory ROI (subject hears the same)
 %     GA and MC share a pattern in the visual ROI (subject sees the same)
 %     DA and MC share a pattern in the perception ROI (subject perceives the same)
 %     all 4 conditions have the same pattern of activation over the remaining ROI
-% 
+%
 % Dataset
 
 % The patterns of activation in each condition were used to generate a
@@ -69,28 +78,32 @@
 % provided has one such image per trial, and 10 trials of each condition in
 % each of 4 "runs". The tutorial will use this dataset and links for
 % downloading it are provided there; for the rest of this section we will
-% be concerned with results. Analysis Computing all local similarities
-% 
+% be concerned with results.
+
+% Analysis Computing all local similarities
+%
 % Simitar can produce a local similarity matrix between the patterns of
 % activity in all conditions, considered over all the voxels inside a given
 % searchlight; the measure can be correlation, euclidean distance or a
 % number of others. If we do it for all the searchlights in the brain and
 % plot the resulting matrices in the position of the corresponding centers,
 % we get something like the following for correlation similarity or
-% euclidean distances, respectively. Correlation matrix at each searchlight
-% Euclidean distance matrix at each searchlight Making a map of a
-% particular similarity structure
-% 
+% euclidean distances, respectively.
+
+% Correlation matrix at each searchlight
+% Euclidean distance matrix at each searchlight
+% Making a map of a particular similarity structure
+%
 % Having all local similarities can be useful if one is interested in a
 % particular location, but in general the question is whether there are any
 % locations where certain characteristics of similarity are present.
-% 
+%
 % For instance, let us consider correlation matrices and suppose that we
 % would like to find locations where BA is represented similarly to McGurk
 % but differently from everything else. Intuitively, we want matrices where
 % the correlation between BA and McGurk is high but that between BA and
 % everything else (and McGurk and everything else) is low.
-% 
+%
 % Simitar allows you to specify this through a similarity structure scoring
 % scoring matrix
 
@@ -99,7 +112,6 @@
 % 	GA -1  0  0 -1
 % 	DA -1  0  0 -1
 % 	MC +1 -1 -1  0
-      
 
 % This matrix is multiplied elementwise by each searchlight similarity
 % matrix and the elements of the resulting matrix are summed to produce a
@@ -108,31 +120,52 @@
 % conditions and McGurk (0 entries are ignored). We can thus produce a
 % similarity structure map for the similarity structure scoring matrix
 % above (the leftmost one) as well as analogous matrices for GA and DA.
-% 
+%
 % The same may be done using euclidean distance, except in this case the
 % matrix should reward closeness between representations and penalize
 % distance, i.e. again for BA similar to McGurk but different from
 % everything else
-% 
+%
 % 	   BA GA DA MC
 % 	BA  0 +1 +1 -1
 % 	GA +1  0  0 +1
 % 	DA +1  0  0 +1
 % 	MC -1 +1 +1  0
-      
 
 % which would yield the following similarity structure score maps.
-% 
+%
 % Statistical testing of a similarity structure map
+%
+% The similarity structure score maps above can be used for exploratory data
+% analysis, by looking in more detail at the locations with the highest
+% similarity structure score. It is also possible to transform them into
+% p-value maps by using permutation tests. Simitar supports two varieties:
+%
+%     Permute over example labels - If you have many examples of each
+%     condition, we can permute over their labels, within each run, and obtain
+%     a similarity structure map for that permutation. Repeated over many
+%     permutations, this yields a permutation distribution for the score at
+%     each voxel and a p-value for the score obtained using the original
+%     labels.
+%     Permute over entries of the matrix - If you only have one or very few
+%     examples of each condition (e.g. you use deconvolution over many trials
+%     to get a single beta coefficient image as the example for one condition)
+%     you will likely not have enough examples to permute over example labels.
+%     You can, instead, permute over all distinct pairs of conditions in your
+%     score matrix (e.g. in our mock dataset there are only six, so hence
+%     6!=720 permutations).
 % 
-% The similarity structure score maps above can be used for exploratory data analysis, by looking in more detail at the locations with the highest similarity structure score. It is also possible to transform them into p-value maps by using permutation tests. Simitar supports two varieties:
+% Note that the implicit null hypotheses are different in each case. In the
+% first, we are assuming that there is no information in the condition labels,
+% and this is likely the one you want to use if possible. In the second the
+% implicit assumption is that the specific similarity structure scoring matrix
+% selected does not matter (among all those with the same numbers of -1/0+1).
 % 
-%     Permute over example labels - If you have many examples of each condition, we can permute over their labels, within each run, and obtain a similarity structure map for that permutation. Repeated over many permutations, this yields a permutation distribution for the score at each voxel and a p-value for the score obtained using the original labels.
-%     Permute over entries of the matrix - If you only have one or very few examples of each condition (e.g. you use deconvolution over many trials to get a single beta coefficient image as the example for one condition) you will likely not have enough examples to permute over example labels. You can, instead, permute over all distinct pairs of conditions in your score matrix (e.g. in our mock dataset there are only six, so hence 6!=720 permutations).
-% 
-% Note that the implicit null hypotheses are different in each case. In the first, we are assuming that there is no information in the condition labels, and this is likely the one you want to use if possible. In the second the implicit assumption is that the specific similarity structure scoring matrix selected does not matter (among all those with the same numbers of -1/0+1).
-% 
-% These are the locations where the correlation similarity structure score was deemed significant, using 10000 permutations (of the first variety) and FDR=0.01, for similarity structure scoring matrixes picking BA similar to MC, GA similar to MC and DA similar to MC, respectively.
+% These are the locations where the correlation similarity structure score was
+% deemed significant, using 10000 permutations (of the first variety) and
+% FDR=0.01, for similarity structure scoring matrixes picking BA similar to MC,
+% GA similar to MC and DA similar to MC, respectively.
+
 % Plot similarity matrices for each region of interest
 % We can extend the region considered when computing a similarity matrix to an entire ROI, if we know which ROI each voxel belongs to. Note again how the similarity to MC changes from ROI to ROI across both correlation and euclidean distance, and how in ROI 4 the patterns are almost perfectly correlated or have very low euclidean distance.
 % 
@@ -151,16 +184,29 @@
                    [-1 -1 -1 -1 -1 -1 -1 +1 -1  0 -1 -1]
                    [ 0  0  0  0  0  0  0 -1  0 -1  0  0]
                    [ 0  0  0  0  0  0  0 -1  0 -1  0  0]];
-    
 
 % and gives rise to these structure score maps
 % for correlation for euclidean distance
 
 % If we now look at the correlation matrix in the location with the highest score
-% 
-% it is clear that it matches the structure we specified, in that 'kitchen utensils' and 'tools' are represented similarly to each other, but dissimilarly from other things. Note that 'buildings', 'building parts' and 'furniture' are also represented similarly to each other in the same location; the structure matrix did not reward or penalize this. In order to understand what was being represented you could now look at the patterns of activation in the appropriate searchlight (e.g. it is possible that certain conditions have similar representations because there is little activation). The tutorial shows how to find the voxels which are in the searchlight of the voxel the matrix came from, as well as their locations in 3D.
-% 
-% Finally, we would like to point out that the code for computing (dis)imilarity matrices across the entire brain should be fast enough that you can implement any scoring function you would like to try and do the associated permutation tests by yourself. The code for producing similarity structure score maps is simply a convenient implementation of one particular type of query -- a structure matrix -- that many users asked us for.
+% it is clear that it matches the structure we specified, in that 'kitchen
+% utensils' and 'tools' are represented similarly to each other, but
+% dissimilarly from other things. Note that 'buildings', 'building parts' and
+% 'furniture' are also represented similarly to each other in the same
+% location; the structure matrix did not reward or penalize this. In order to
+% understand what was being represented you could now look at the patterns of
+% activation in the appropriate searchlight (e.g. it is possible that certain
+% conditions have similar representations because there is little activation).
+% The tutorial shows how to find the voxels which are in the searchlight of the
+% voxel the matrix came from, as well as their locations in 3D.
+%
+% Finally, we would like to point out that the code for computing
+% (dis)imilarity matrices across the entire brain should be fast enough that
+% you can implement any scoring function you would like to try and do the
+% associated permutation tests by yourself. The code for producing similarity
+% structure score maps is simply a convenient implementation of one particular
+% type of query -- a structure matrix -- that many users asked us for.
+
 % Tutorial
 % Download and set up the toolbox
 % Please get it from here and the README.txt will tell you how to set it up. The tutorial assumes you are inside the Simitar directory.
@@ -172,17 +218,17 @@
     
 
 % and proceed; this might be the best thing to do the first time you go over this.
-% 
+%
 % If you want to learn how to prepare data for use with Simitar, please follow the instructions given here.
 % A couple of observations, before we begin
-% 
+%
 % You will notice that all functions take as arguments examples and labels
 % twice. This is because the functions have been designed to operate on two
 % entirely different sets of examples, if required, as long as they both
 % have the same conditions present; this might occur, for instance, if you
 % are considering data from two experiments where the conditions are the
 % same but there is a variation in how stimuli are presented.
-% 
+%
 % Internally, the computeSimilarityMap andcomputeSimilarityStructureMap
 % functions average all examples of each condition in an example set into
 % one example per condition. You do not have to worry about doing this
@@ -224,13 +270,26 @@
       clf;
       volume(meta.indicesIn3D) = structureScoreMap;
       imagesc(volume(:,:,1)); axis square;
-    
 
-% If the matrix is ternary (0, -1 and 1), the -1 and 1 present in the matrix are automatically scaled so that the same weight is given to penalization and reward, i.e. all the 1 become 1/4 in this example. You can also specify a matrix where rewards are much higher than penalizations (or vice versa), e.g. instead of 1 use 10; in that situation, the matrix will not be scaled. In our experience, a ternary matrix is a good place to start and the balancing of penalization and reward works well.
-% 
-% Note, also, that we specified examples and labels twice; the code can handle producing matrices involving two sets of examples, and this is just the way to specify that we only have one set. This feature might be useful if you wanted to compare the representations across two different designs involving the same conditions, say.
-% 
-% If you also want a map of p-values, you must also specify how many permutations to run and what kind of test to use. If you have run labels those can be used to group the examples (so that label permutations happen within-group, otherwise the code assumes that the examples belong to a single group).
+% If the matrix is ternary (0, -1 and 1), the -1 and 1 present in the matrix
+% are automatically scaled so that the same weight is given to penalization and
+% reward, i.e. all the 1 become 1/4 in this example. You can also specify a
+% matrix where rewards are much higher than penalizations (or vice versa), e.g.
+% instead of 1 use 10; in that situation, the matrix will not be scaled. In our
+% experience, a ternary matrix is a good place to start and the balancing of
+% penalization and reward works well.
+%
+% Note, also, that we specified examples and labels twice; the code can handle
+% producing matrices involving two sets of examples, and this is just the way
+% to specify that we only have one set. This feature might be useful if you
+% wanted to compare the representations across two different designs involving
+% the same conditions, say.
+%
+% If you also want a map of p-values, you must also specify how many
+% permutations to run and what kind of test to use. If you have run labels
+% those can be used to group the examples (so that label permutations happen
+% within-group, otherwise the code assumes that the examples belong to a single
+% group).
 
       testType = 'overExamples';
       nPermutations = 10000;
