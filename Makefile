@@ -1,5 +1,5 @@
-MCC:=/usr/local/MATLAB/R2013b/bin/mcc
-MEX:=/usr/local/MATLAB/R2013b/bin/mex
+MCC:=/usr/local/MATLAB/R2014b/bin/mcc
+MEX:=/usr/local/MATLAB/R2014b/bin/mex
 MFLAGS:=-m -R -singleCompThread -R -nodisplay -R -nojvm
 INCL= -I$(MATLABDIR)/extern/include
 SRCDIR= ./
